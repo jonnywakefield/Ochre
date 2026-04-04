@@ -212,15 +212,12 @@ class StatusService : Service() {
             style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(segLen).setColor(segColor))
         }
 
-        val icon = when {
-            snap.activeWalk != null  -> R.drawable.ic_dog_walking
-            snap.activeAlone != null -> R.drawable.ic_dog_alone
-            lastFeed != null && now - lastFeed.timestampMillis < 30 * 60_000 -> R.drawable.ic_dog_eating
-            else                     -> R.drawable.ic_dog
-        }
+        val icon = R.drawable.ic_paw
 
         val builder = NotificationCompat.Builder(this, CHANNEL_STATUS)
             .setSmallIcon(icon)
+            .setColor(0xFFE4A853.toInt())
+            .setColorized(false)
             .setContentTitle(title)
             .setContentText(summaryLine)
             .setContentIntent(openAppIntent())
@@ -244,7 +241,7 @@ class StatusService : Service() {
 
     private fun buildPlaceholder(): Notification =
         NotificationCompat.Builder(this, CHANNEL_STATUS)
-            .setSmallIcon(R.drawable.ic_dog)
+            .setSmallIcon(R.drawable.ic_paw)
             .setContentTitle("ochre")
             .setContentText("Starting…")
             .setOngoing(true)

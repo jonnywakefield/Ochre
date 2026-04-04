@@ -16,7 +16,7 @@ class WalkTimerService : Service() {
         startForeground(
             NOTIF_ID_STATUS,
             NotificationCompat.Builder(this, CHANNEL_STATUS)
-                .setSmallIcon(R.drawable.ic_dog_walking)
+                .setSmallIcon(R.drawable.ic_paw)
                 .setContentTitle("Walking…")
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)

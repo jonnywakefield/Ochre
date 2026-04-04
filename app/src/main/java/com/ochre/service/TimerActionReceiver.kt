@@ -70,7 +70,7 @@ class TimerActionReceiver : BroadcastReceiver() {
         val msg = "$label · ${timeFmt.format(Date())}"
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notif = NotificationCompat.Builder(context, CHANNEL_STATUS)
-            .setSmallIcon(R.drawable.ic_dog)
+            .setSmallIcon(R.drawable.ic_paw)
             .setContentTitle(msg)
             .setContentText("Walking…")
             .setOngoing(true)

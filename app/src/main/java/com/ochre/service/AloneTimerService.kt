@@ -16,7 +16,7 @@ class AloneTimerService : Service() {
         startForeground(
             NOTIF_ID_STATUS,
             NotificationCompat.Builder(this, CHANNEL_STATUS)
-                .setSmallIcon(R.drawable.ic_dog_alone)
+                .setSmallIcon(R.drawable.ic_paw)
                 .setContentTitle("Away…")
                 .setOngoing(true)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
