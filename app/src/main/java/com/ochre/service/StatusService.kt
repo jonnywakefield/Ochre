@@ -136,80 +136,79 @@ class StatusService : Service() {
         val barEndMin   = prefs.barEndHour * 60
         val barSpan     = (barEndMin - barStartMin).coerceAtLeast(60)
 
-        // Map an absolute minute-of-day into a bar position (0..barSpan), clamped
         fun barPos(absMin: Int) = (absMin - barStartMin).coerceIn(0, barSpan)
 
         val nowPos = barPos(nowMin)
 
-        val dog    = IconCompat.createWithResource(this, R.drawable.ic_dog_run)
-
         val style = NotificationCompat.ProgressStyle()
             .setProgress(nowPos)
-            .setProgressTrackerIcon(dog)
             .setProgressStartIcon(hourLabelIcon(prefs.barStartHour))
             .setProgressEndIcon(hourLabelIcon(prefs.barEndHour))
 
-        // Build segments left-to-right summing to barSpan.
-        // Grey background interrupted by dark-brown windows for each meal's time window.
-        val daySeed = cal.get(Calendar.YEAR) * 1000L + cal.get(Calendar.DAY_OF_YEAR)
-        data class Window(val start: Int, val end: Int)
-        val mealWindows = snap.meals
-            .filter { it.randomReminderEnabled }
-            .map { meal ->
-                val center = meal.targetHour * 60 + meal.targetMinute
-                val half   = meal.windowMinutes / 2
-                Window(barPos(center - half), barPos(center + half))
-            }
-            .filter { it.end > it.start }
-            .sortedBy { it.start }
+        // Collect all painted regions as (start, end, color), sorted by start.
+        // Priority (higher index = drawn later / wins): meal window < feed < walk < active-walk
+        data class Region(val start: Int, val end: Int, val color: Int)
+        val regions = mutableListOf<Region>()
 
-        var cursor = 0
-        for (win in mealWindows) {
-            val winStart = win.start.coerceAtLeast(cursor)
-            if (winStart > cursor) {
-                style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(winStart - cursor).setColor(0xFF2A2A2A.toInt()))
-            }
-            val winLen = win.end - winStart
-            if (winLen > 0) {
-                style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(winLen).setColor(0xFF4A2800.toInt()))
-            }
-            cursor = win.end
-        }
-        if (cursor < barSpan) {
-            style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(barSpan - cursor).setColor(0xFF2A2A2A.toInt()))
-        }
-
-        // Suggested feed time point within each window
-        snap.meals.filter { it.randomReminderEnabled }.forEach { meal ->
+        // Meal windows — subtle dark background hint
+        snap.meals.forEach { meal ->
             val center = meal.targetHour * 60 + meal.targetMinute
             val half   = meal.windowMinutes / 2
-            val rng = java.util.Random(daySeed + meal.id)
-            val offsetMin = if (meal.windowMinutes > 0) rng.nextInt(meal.windowMinutes) else 0
-            val feedMin = center - half + offsetMin
-            style.addProgressPoint(
-                NotificationCompat.ProgressStyle.Point(barPos(feedMin)).setColor(0xFF4A2800.toInt())
-            )
+            val s = barPos(center - half)
+            val e = barPos(center + half)
+            if (e > s) regions += Region(s, e, 0xFF3A2010.toInt())
         }
 
-        // Past feed events — dark brown point
-        lastFeed?.let { feed ->
-            if (feed.timestampMillis >= dayStartMs && feed.timestampMillis <= now) {
+        // Past feed events today — 2-minute wide ochre mark
+        snap.lastEvents[EventType.FEED]?.let { feed ->
+            if (feed.timestampMillis in dayStartMs..now) {
                 val absMin = ((feed.timestampMillis - dayStartMs) / 60_000).toInt()
-                style.addProgressPoint(
-                    NotificationCompat.ProgressStyle.Point(barPos(absMin)).setColor(0xFF4A2800.toInt())
-                )
+                val s = barPos(absMin)
+                val e = barPos(absMin + 2).coerceAtMost(barSpan)
+                if (e > s) regions += Region(s, e, 0xFFE4A853.toInt()) // ochre
             }
         }
 
-        // Walk events — light brown points
+        // Past walks today — span their actual duration in a warm brown
         snap.walkHistory.filter { !it.isActive }.forEach { walk ->
-            val endMs = walk.endMillis ?: walk.startMillis
-            if (endMs >= dayStartMs && endMs <= now) {
-                val absMin = ((endMs - dayStartMs) / 60_000).toInt()
-                style.addProgressPoint(
-                    NotificationCompat.ProgressStyle.Point(barPos(absMin)).setColor(0xFFA0724A.toInt())
-                )
+            val endMs   = walk.endMillis ?: return@forEach
+            if (endMs < dayStartMs || walk.startMillis > now) return@forEach
+            val startMin = ((walk.startMillis - dayStartMs) / 60_000).toInt()
+            val endMin   = ((endMs           - dayStartMs) / 60_000).toInt()
+            val s = barPos(startMin)
+            val e = barPos(endMin).coerceAtMost(barSpan)
+            if (e > s) regions += Region(s, e, 0xFFA0724A.toInt()) // warm brown
+        }
+
+        // Active walk — from start to now, brighter colour
+        snap.activeWalk?.let { walk ->
+            val startMin = ((walk.startMillis - dayStartMs) / 60_000).toInt()
+            val s = barPos(startMin)
+            val e = nowPos
+            if (e > s) regions += Region(s, e, 0xFFD4925A.toInt()) // lighter brown
+        }
+
+        // Flatten regions onto a segment list, grey fills the gaps.
+        // Merge overlapping regions (last one in list wins for a given position).
+        val colorAt = IntArray(barSpan) { 0xFF2A2A2A.toInt() }
+        regions.sortedBy { it.start }.forEach { r ->
+            for (i in r.start until r.end) colorAt[i] = r.color
+        }
+
+        // RLE-encode into segments
+        if (barSpan > 0) {
+            var segColor = colorAt[0]
+            var segLen   = 1
+            for (i in 1 until barSpan) {
+                if (colorAt[i] == segColor) {
+                    segLen++
+                } else {
+                    style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(segLen).setColor(segColor))
+                    segColor = colorAt[i]
+                    segLen   = 1
+                }
             }
+            style.addProgressSegment(NotificationCompat.ProgressStyle.Segment(segLen).setColor(segColor))
         }
 
         val icon = when {
