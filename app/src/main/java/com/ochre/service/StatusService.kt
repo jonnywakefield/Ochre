@@ -140,8 +140,11 @@ class StatusService : Service() {
 
         val nowPos = barPos(nowMin)
 
+        val dog = IconCompat.createWithResource(this, R.drawable.ic_dog_run)
+
         val style = NotificationCompat.ProgressStyle()
             .setProgress(nowPos)
+            .setProgressTrackerIcon(dog)
             .setProgressStartIcon(hourLabelIcon(prefs.barStartHour))
             .setProgressEndIcon(hourLabelIcon(prefs.barEndHour))
 
