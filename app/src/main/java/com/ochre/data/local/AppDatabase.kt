@@ -9,6 +9,7 @@ import com.ochre.data.local.dao.EventDao
 import com.ochre.data.local.dao.FoodDao
 import com.ochre.data.local.dao.ReminderDao
 import com.ochre.data.local.dao.WalkDao
+import com.ochre.data.local.dao.WeightDao
 import com.ochre.data.local.entity.AloneSessionEntity
 import com.ochre.data.local.entity.EventEntity
 import com.ochre.data.local.entity.FoodStockEntity
@@ -17,6 +18,7 @@ import com.ochre.data.local.entity.ReminderEntity
 import com.ochre.data.local.entity.WalkScheduleConfigEntity
 import com.ochre.data.local.entity.WalkScheduleEntryEntity
 import com.ochre.data.local.entity.WalkSessionEntity
+import com.ochre.data.local.entity.WeightEntity
 
 @Database(
     entities = [
@@ -27,9 +29,10 @@ import com.ochre.data.local.entity.WalkSessionEntity
         AloneSessionEntity::class,
         MealScheduleEntity::class,
         FoodStockEntity::class,
-        ReminderEntity::class
+        ReminderEntity::class,
+        WeightEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -38,9 +41,23 @@ abstract class AppDatabase : RoomDatabase() {
     abstract val aloneDao: AloneDao
     abstract val foodDao: FoodDao
     abstract val reminderDao: ReminderDao
+    abstract val weightDao: WeightDao
 
     companion object {
         const val DATABASE_NAME = "ochre_db"
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""
+                    CREATE TABLE IF NOT EXISTS weight_entries (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        timestampMillis INTEGER NOT NULL,
+                        weightKg REAL NOT NULL,
+                        note TEXT NOT NULL DEFAULT ''
+                    )
+                """)
+            }
+        }
 
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
@@ -49,6 +66,7 @@ abstract class AppDatabase : RoomDatabase() {
         }
 
         val MIGRATION_1_2 = object : Migration(1, 2) {
+
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("""
                     CREATE TABLE IF NOT EXISTS walk_sessions (

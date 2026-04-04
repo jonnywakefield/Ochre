@@ -1,5 +1,7 @@
 package com.ochre.presentation.walk
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,7 +14,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,11 +67,31 @@ private fun ActiveWalkScreen(
     onEnd: () -> Unit
 ) {
     var elapsedMillis by remember { mutableLongStateOf(System.currentTimeMillis() - walk.startMillis) }
+    val haptic = LocalHapticFeedback.current
+
+    // Flash state: 0=none, 1=poo flash, 2=pee flash
+    var flashState by remember { mutableIntStateOf(0) }
+    val flashColor by animateColorAsState(
+        targetValue = when (flashState) {
+            1 -> OchreColors.Accent.copy(alpha = 0.18f)
+            2 -> Color(0xFF4A8FA8).copy(alpha = 0.18f)
+            else -> Color.Transparent
+        },
+        animationSpec = tween(durationMillis = 300),
+        label = "flash"
+    )
 
     LaunchedEffect(walk.id) {
         while (true) {
             elapsedMillis = System.currentTimeMillis() - walk.startMillis
             kotlinx.coroutines.delay(1_000)
+        }
+    }
+
+    LaunchedEffect(flashState) {
+        if (flashState != 0) {
+            kotlinx.coroutines.delay(600)
+            flashState = 0
         }
     }
 
@@ -94,21 +119,37 @@ private fun ActiveWalkScreen(
                 letterSpacing = 1.sp
             )
             Spacer(Modifier.height(24.dp))
-            Text(
-                text = formatElapsed(elapsedMillis),
-                color = OchreColors.TextPrimary,
-                fontSize = 56.sp,
-                fontWeight = FontWeight.Light,
-                letterSpacing = (-1).sp
-            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(flashColor, RoundedCornerShape(12.dp))
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = formatElapsed(elapsedMillis),
+                    color = OchreColors.TextPrimary,
+                    fontSize = 56.sp,
+                    fontWeight = FontWeight.Light,
+                    letterSpacing = (-1).sp
+                )
+            }
             Spacer(Modifier.height(32.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                WalkActionButton(label = "Poo", filled = false, modifier = Modifier.weight(1f), onClick = onPoo)
-                WalkActionButton(label = "Pee", filled = false, modifier = Modifier.weight(1f), onClick = onPee)
+                WalkActionButton(label = "Poo", filled = false, modifier = Modifier.weight(1f), onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    flashState = 1
+                    onPoo()
+                })
+                WalkActionButton(label = "Pee", filled = false, modifier = Modifier.weight(1f), onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    flashState = 2
+                    onPee()
+                })
             }
             Spacer(Modifier.height(12.dp))
             WalkActionButton(
@@ -168,6 +209,7 @@ private fun WalkHistoryScreen(
     onStartWalk: () -> Unit,
     onOpenSettings: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -220,13 +262,13 @@ private fun WalkHistoryScreen(
                 label = "Log poo",
                 filled = false,
                 modifier = Modifier.weight(1f),
-                onClick = onPoo
+                onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onPoo() }
             )
             WalkActionButton(
                 label = "Log pee",
                 filled = false,
                 modifier = Modifier.weight(1f),
-                onClick = onPee
+                onClick = { haptic.performHapticFeedback(HapticFeedbackType.LongPress); onPee() }
             )
         }
 

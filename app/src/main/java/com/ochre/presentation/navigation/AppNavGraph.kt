@@ -23,6 +23,7 @@ import com.ochre.presentation.food.FoodViewModel
 import com.ochre.presentation.home.HomeScreen
 import com.ochre.presentation.home.HomeViewModel
 import com.ochre.presentation.medical.MedicalScreen
+import com.ochre.presentation.medical.MedicalViewModel
 import com.ochre.presentation.settings.SettingsScreen
 import com.ochre.presentation.training.TrainingScreen
 import com.ochre.presentation.walk.WalkScreen
@@ -49,9 +50,13 @@ fun AppNavGraph(container: AppContainer) {
                         startWalkUseCase = container.startWalkUseCase,
                         endWalkUseCase = container.endWalkUseCase,
                         getActiveWalkUseCase = container.getActiveWalkUseCase,
+                        getWalkHistoryUseCase = container.getWalkHistoryUseCase,
                         startAloneUseCase = container.startAloneUseCase,
                         endAloneUseCase = container.endAloneUseCase,
-                        getActiveAloneSessionUseCase = container.getActiveAloneSessionUseCase
+                        getActiveAloneSessionUseCase = container.getActiveAloneSessionUseCase,
+                        getFeedLogUseCase = container.getFeedLogUseCase,
+                        getMealScheduleUseCase = container.getMealScheduleUseCase,
+                        getCurrentStockUseCase = container.getCurrentStockUseCase
                     )
                 )
 
@@ -138,7 +143,14 @@ fun AppNavGraph(container: AppContainer) {
             }
 
             composable(Screen.Medical.route) {
-                MedicalScreen()
+                val viewModel: MedicalViewModel = viewModel(
+                    factory = MedicalViewModel.provideFactory(
+                        logWeightUseCase = container.logWeightUseCase,
+                        getWeightHistoryUseCase = container.getWeightHistoryUseCase,
+                        deleteWeightUseCase = container.deleteWeightUseCase
+                    )
+                )
+                MedicalScreen(viewModel = viewModel)
             }
 
             composable(Screen.Settings.route) {

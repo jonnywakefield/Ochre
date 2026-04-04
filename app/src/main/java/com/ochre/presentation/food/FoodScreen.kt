@@ -66,8 +66,12 @@ fun FoodScreen(viewModel: FoodViewModel) {
             }
         } else {
             items(uiState.meals, key = { "meal_${it.id}" }) { meal ->
+                val todayFedForMeal = uiState.feedLog.any { event ->
+                    event.isToday() && event.note == "meal:${meal.id}"
+                }
                 MealRow(
                     meal = meal,
+                    fedToday = todayFedForMeal,
                     onFed = {
                         feedForMeal = meal
                         showLogFeed = true
@@ -92,22 +96,39 @@ fun FoodScreen(viewModel: FoodViewModel) {
         // Feed log section
         item("feedlog_header") {
             SectionHeader(
-                title = "Today's log",
+                title = "Feed log",
                 actionLabel = "+ Log feed",
                 onAction = {
                     feedForMeal = null
                     showLogFeed = true
                 }
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
         }
 
         val todayFeeds = uiState.feedLog.filter { it.isToday() }
-        if (todayFeeds.isEmpty()) {
-            item("feedlog_empty") { Text("Nothing logged today", color = OchreColors.TextSecondary, fontSize = 13.sp) }
+        val olderFeeds = uiState.feedLog.filter { !it.isToday() }
+        if (todayFeeds.isEmpty() && olderFeeds.isEmpty()) {
+            item("feedlog_empty") { Text("Nothing logged yet", color = OchreColors.TextSecondary, fontSize = 13.sp) }
         } else {
-            items(todayFeeds, key = { "feed_${it.id}" }) { event ->
-                FeedLogRow(event, onDelete = { viewModel.deleteFeedEvent(event) })
+            if (todayFeeds.isNotEmpty()) {
+                item("feedlog_today_label") {
+                    Text("Today", color = OchreColors.TextSecondary, fontSize = 10.sp, letterSpacing = 0.5.sp)
+                    Spacer(Modifier.height(4.dp))
+                }
+                items(todayFeeds, key = { "feed_${it.id}" }) { event ->
+                    FeedLogRow(event, meals = uiState.meals, onDelete = { viewModel.deleteFeedEvent(event) })
+                }
+            }
+            if (olderFeeds.isNotEmpty()) {
+                item("feedlog_older_label") {
+                    Spacer(Modifier.height(12.dp))
+                    Text("Earlier", color = OchreColors.TextSecondary, fontSize = 10.sp, letterSpacing = 0.5.sp)
+                    Spacer(Modifier.height(4.dp))
+                }
+                items(olderFeeds.take(20), key = { "feed_${it.id}" }) { event ->
+                    FeedLogRow(event, meals = uiState.meals, onDelete = { viewModel.deleteFeedEvent(event) })
+                }
             }
         }
 
@@ -163,7 +184,7 @@ private fun SectionHeader(title: String, actionLabel: String, onAction: () -> Un
 }
 
 @Composable
-private fun MealRow(meal: MealScheduleEntry, onFed: () -> Unit, onDelete: () -> Unit) {
+private fun MealRow(meal: MealScheduleEntry, fedToday: Boolean, onFed: () -> Unit, onDelete: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -172,15 +193,22 @@ private fun MealRow(meal: MealScheduleEntry, onFed: () -> Unit, onDelete: () -> 
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(meal.label, color = OchreColors.TextPrimary, fontSize = 15.sp)
-            val window = "%02d:%02d – %02d:%02d".format(
-                meal.targetHour,
-                meal.targetMinute,
-                (meal.targetHour + (meal.targetMinute + meal.windowMinutes) / 60) % 24,
-                (meal.targetMinute + meal.windowMinutes) % 60
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(meal.label, color = OchreColors.TextPrimary, fontSize = 15.sp)
+                if (fedToday) {
+                    Text("✓", color = OchreColors.Accent, fontSize = 13.sp)
+                }
+            }
+            val windowStart = "%02d:%02d".format(
+                (meal.targetHour * 60 + meal.targetMinute - meal.windowMinutes / 2) / 60 % 24,
+                (meal.targetMinute - meal.windowMinutes / 2 + 60) % 60
+            )
+            val windowEnd = "%02d:%02d".format(
+                (meal.targetHour * 60 + meal.targetMinute + meal.windowMinutes / 2) / 60 % 24,
+                (meal.targetMinute + meal.windowMinutes / 2) % 60
             )
             Text(
-                "$window  ${meal.defaultGrams}g",
+                "$windowStart – $windowEnd  ${meal.defaultGrams}g",
                 color = OchreColors.TextSecondary,
                 fontSize = 12.sp
             )
@@ -190,13 +218,13 @@ private fun MealRow(meal: MealScheduleEntry, onFed: () -> Unit, onDelete: () -> 
                 onClick = onFed,
                 shape = RoundedCornerShape(6.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = OchreColors.Accent,
-                    contentColor = OchreColors.Background
+                    containerColor = if (fedToday) OchreColors.Surface else OchreColors.Accent,
+                    contentColor = if (fedToday) OchreColors.Accent else OchreColors.Background
                 ),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
                 modifier = Modifier.height(34.dp)
             ) {
-                Text("Fed", fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                Text("Log", fontSize = 13.sp, fontWeight = FontWeight.Medium)
             }
             IconButton(onClick = onDelete, modifier = Modifier.size(32.dp)) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete meal",
@@ -227,8 +255,12 @@ private fun StockRow(grams: Int, daysRemaining: Int) {
 }
 
 @Composable
-private fun FeedLogRow(event: DogEvent, onDelete: () -> Unit) {
-    val fmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+private fun FeedLogRow(event: DogEvent, meals: List<MealScheduleEntry>, onDelete: () -> Unit) {
+    val dateFmt = SimpleDateFormat("EEE d MMM  HH:mm", Locale.getDefault())
+    val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+    val mealId = event.note?.removePrefix("meal:")?.toLongOrNull()
+    val mealLabel = meals.firstOrNull { it.id == mealId }?.label
+    val isToday = event.isToday()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -236,7 +268,17 @@ private fun FeedLogRow(event: DogEvent, onDelete: () -> Unit) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(fmt.format(Date(event.timestampMillis)), color = OchreColors.TextSecondary, fontSize = 13.sp)
+        Column {
+            Text(
+                if (isToday) timeFmt.format(Date(event.timestampMillis))
+                else dateFmt.format(Date(event.timestampMillis)),
+                color = OchreColors.TextSecondary,
+                fontSize = 13.sp
+            )
+            if (mealLabel != null) {
+                Text(mealLabel, color = OchreColors.TextSecondary, fontSize = 11.sp)
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("${event.value?.toInt() ?: 0}g", color = OchreColors.TextPrimary, fontSize = 14.sp)
             Icon(Icons.Default.Delete, contentDescription = "Delete feed",

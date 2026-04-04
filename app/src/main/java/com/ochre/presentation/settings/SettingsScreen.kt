@@ -26,8 +26,9 @@ fun SettingsScreen() {
     var aloneLimit by remember { mutableStateOf(prefs.aloneMaxMinutes.toString()) }
     var aloneLimitSaved by remember { mutableStateOf(true) }
 
-    var barStart by remember { mutableStateOf(prefs.barStartHour.toString()) }
-    var barEnd   by remember { mutableStateOf(prefs.barEndHour.toString()) }
+    // Bar range stored as HH:MM strings
+    var barStart by remember { mutableStateOf(minutesToHHMM(prefs.barStartMinute)) }
+    var barEnd   by remember { mutableStateOf(minutesToHHMM(prefs.barEndMinute)) }
     var barRangeSaved by remember { mutableStateOf(true) }
 
     Column(
@@ -90,7 +91,7 @@ fun SettingsScreen() {
         Spacer(Modifier.height(12.dp))
 
         Text(
-            text = "Hours shown on the 24-hour progress bar (0–23)",
+            text = "Start and end time shown on the progress bar (HH:MM)",
             color = OchreColors.TextSecondary,
             fontSize = 12.sp,
             modifier = Modifier.padding(bottom = 12.dp)
@@ -100,48 +101,69 @@ fun SettingsScreen() {
             OutlinedTextField(
                 value = barStart,
                 onValueChange = { v ->
-                    barStart = v.filter { it.isDigit() }.take(2)
+                    barStart = v.filter { it.isDigit() || it == ':' }.take(5)
                     barRangeSaved = false
                 },
                 label = { Text("From", color = OchreColors.TextSecondary, fontSize = 12.sp) },
+                placeholder = { Text("06:00", color = OchreColors.TextSecondary, fontSize = 13.sp) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.width(90.dp),
+                modifier = Modifier.width(100.dp),
                 colors = outlinedFieldColors()
             )
             Text("to", color = OchreColors.TextSecondary, fontSize = 13.sp)
             OutlinedTextField(
                 value = barEnd,
                 onValueChange = { v ->
-                    barEnd = v.filter { it.isDigit() }.take(2)
+                    barEnd = v.filter { it.isDigit() || it == ':' }.take(5)
                     barRangeSaved = false
                 },
                 label = { Text("To", color = OchreColors.TextSecondary, fontSize = 12.sp) },
+                placeholder = { Text("23:00", color = OchreColors.TextSecondary, fontSize = 13.sp) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.width(90.dp),
+                modifier = Modifier.width(100.dp),
                 colors = outlinedFieldColors()
             )
             if (!barRangeSaved) {
                 TextButton(onClick = {
-                    val s = barStart.toIntOrNull()?.coerceIn(0, 22)
-                    val e = barEnd.toIntOrNull()?.coerceIn(1, 23)
+                    val s = parseHHMM(barStart)
+                    val e = parseHHMM(barEnd)
                     if (s != null && e != null && e > s) {
-                        barStart = s.toString()
-                        barEnd   = e.toString()
-                        NotificationPrefs.set(context, NotificationPrefs.KEY_BAR_START_HOUR, s)
-                        NotificationPrefs.set(context, NotificationPrefs.KEY_BAR_END_HOUR, e)
+                        barStart = minutesToHHMM(s)
+                        barEnd   = minutesToHHMM(e)
+                        NotificationPrefs.set(context, NotificationPrefs.KEY_BAR_START_MINUTE, s)
+                        NotificationPrefs.set(context, NotificationPrefs.KEY_BAR_END_MINUTE, e)
                         barRangeSaved = true
                     }
                 }) {
                     Text("Save", color = OchreColors.Accent, fontSize = 14.sp)
                 }
             } else {
-                Text("${barStart}:00 – ${barEnd}:00", color = OchreColors.TextSecondary, fontSize = 13.sp)
+                Text("$barStart – $barEnd", color = OchreColors.TextSecondary, fontSize = 13.sp)
             }
         }
     }
 }
+
+/** Parse "HH:MM" or plain "H" into total minutes, returns null on failure. */
+private fun parseHHMM(input: String): Int? {
+    val trimmed = input.trim()
+    return if (trimmed.contains(':')) {
+        val parts = trimmed.split(':')
+        val h = parts[0].toIntOrNull() ?: return null
+        val m = parts[1].toIntOrNull() ?: return null
+        if (h !in 0..23 || m !in 0..59) return null
+        h * 60 + m
+    } else {
+        val h = trimmed.toIntOrNull() ?: return null
+        if (h !in 0..23) return null
+        h * 60
+    }
+}
+
+private fun minutesToHHMM(totalMinutes: Int): String =
+    "%02d:%02d".format(totalMinutes / 60, totalMinutes % 60)
 
 @Composable
 private fun outlinedFieldColors() = OutlinedTextFieldDefaults.colors(

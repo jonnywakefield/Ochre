@@ -22,6 +22,15 @@ fun HomeScreen(viewModel: HomeViewModel) {
     var showNoteSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // Tick every 30s to refresh elapsed times
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(30_000)
+            now = System.currentTimeMillis()
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -39,10 +48,59 @@ fun HomeScreen(viewModel: HomeViewModel) {
             letterSpacing = 3.sp
         )
 
-        Spacer(Modifier.height(48.dp))
+        Spacer(Modifier.height(32.dp))
+
+        // Status dashboard
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(OchreColors.Surface, RoundedCornerShape(10.dp))
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // Walk status
+            val walkLabel = when {
+                uiState.isWalkActive -> "Walk  ${formatElapsed(now - (uiState.activeWalk!!.startMillis))}"
+                uiState.lastWalkEndMillis != null -> "Last walk  ${formatElapsed(now - uiState.lastWalkEndMillis)} ago"
+                else -> "Walk  —"
+            }
+            DashRow(label = walkLabel, highlight = uiState.isWalkActive)
+
+            // Feed status
+            val feedLabel = when {
+                uiState.lastFedMillis != null -> "Last fed  ${formatElapsed(now - uiState.lastFedMillis)} ago"
+                else -> "Last fed  —"
+            }
+            DashRow(label = feedLabel)
+
+            // Next meal
+            if (uiState.nextMeal != null && uiState.nextMealMinutes != null) {
+                val minsUntil = uiState.nextMealMinutes
+                val nextLabel = if (minsUntil < 60) "Next feed  in ${minsUntil}m (${uiState.nextMeal.label})"
+                               else "Next feed  in ${minsUntil / 60}h ${minsUntil % 60}m (${uiState.nextMeal.label})"
+                DashRow(label = nextLabel)
+            }
+
+            // Stock
+            if (uiState.stockGrams > 0) {
+                DashRow(
+                    label = "Stock  ${"%,d".format(uiState.stockGrams)}g",
+                    warn = uiState.stockGrams < 500
+                )
+            }
+
+            // Away status
+            if (uiState.isAloneActive) {
+                DashRow(
+                    label = "Away  ${formatElapsed(now - (uiState.activeAlone!!.startMillis))}",
+                    highlight = true
+                )
+            }
+        }
+
+        Spacer(Modifier.height(24.dp))
 
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Walk button — filled when active, outlined when inactive
             HomeButton(
                 label = if (uiState.isWalkActive) "End walk" else "Start walk",
                 style = if (uiState.isWalkActive) ButtonStyle.FilledAccent else ButtonStyle.Outlined,
@@ -52,7 +110,6 @@ fun HomeScreen(viewModel: HomeViewModel) {
                 }
             )
 
-            // Alone button
             HomeButton(
                 label = if (uiState.isAloneActive) "Back home" else "Leave",
                 style = ButtonStyle.Outlined,
@@ -62,25 +119,11 @@ fun HomeScreen(viewModel: HomeViewModel) {
                 }
             )
 
-            // Note button
             HomeButton(
                 label = "Write note",
                 style = ButtonStyle.Subtle,
                 onClick = { showNoteSheet = true }
             )
-        }
-
-        // Active state indicators
-        if (uiState.isWalkActive || uiState.isAloneActive) {
-            Spacer(Modifier.height(36.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                if (uiState.isWalkActive) {
-                    StatusLine("Walk in progress")
-                }
-                if (uiState.isAloneActive) {
-                    StatusLine("Away from home")
-                }
-            }
         }
     }
 
@@ -103,6 +146,19 @@ fun HomeScreen(viewModel: HomeViewModel) {
 }
 
 private enum class ButtonStyle { FilledAccent, Outlined, Subtle }
+
+@Composable
+private fun DashRow(label: String, highlight: Boolean = false, warn: Boolean = false) {
+    Text(
+        text = label,
+        color = when {
+            highlight -> OchreColors.Accent
+            warn -> OchreColors.Destructive
+            else -> OchreColors.TextSecondary
+        },
+        fontSize = 13.sp
+    )
+}
 
 @Composable
 private fun HomeButton(
@@ -144,16 +200,6 @@ private fun HomeButton(
 }
 
 @Composable
-private fun StatusLine(text: String) {
-    Text(
-        text = text,
-        color = OchreColors.TextSecondary,
-        fontSize = 12.sp,
-        letterSpacing = 0.3.sp
-    )
-}
-
-@Composable
 private fun NoteSheet(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
     var text by remember { mutableStateOf("") }
     Column(
@@ -191,4 +237,11 @@ private fun NoteSheet(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
         }
         Spacer(Modifier.height(8.dp))
     }
+}
+
+private fun formatElapsed(millis: Long): String {
+    val totalMin = millis / 60_000
+    val h = totalMin / 60
+    val m = totalMin % 60
+    return if (h > 0) "${h}h ${m}m" else "${m}m"
 }

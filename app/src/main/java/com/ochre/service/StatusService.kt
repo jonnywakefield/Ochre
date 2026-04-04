@@ -132,8 +132,8 @@ class StatusService : Service() {
         val dayStartMs = now - nowMin * 60_000L
 
         val prefs = NotificationPrefs.get(this)
-        val barStartMin = prefs.barStartHour * 60
-        val barEndMin   = prefs.barEndHour * 60
+        val barStartMin = prefs.barStartMinute
+        val barEndMin   = prefs.barEndMinute
         val barSpan     = (barEndMin - barStartMin).coerceAtLeast(60)
 
         fun barPos(absMin: Int) = (absMin - barStartMin).coerceIn(0, barSpan)
@@ -145,8 +145,8 @@ class StatusService : Service() {
         val style = NotificationCompat.ProgressStyle()
             .setProgress(nowPos)
             .setProgressTrackerIcon(dog)
-            .setProgressStartIcon(hourLabelIcon(prefs.barStartHour))
-            .setProgressEndIcon(hourLabelIcon(prefs.barEndHour))
+            .setProgressStartIcon(minuteLabelIcon(prefs.barStartMinute))
+            .setProgressEndIcon(minuteLabelIcon(prefs.barEndMinute))
 
         // Collect all painted regions as (start, end, color), sorted by start.
         // Priority (higher index = drawn later / wins): meal window < feed < walk < active-walk
@@ -282,20 +282,23 @@ class StatusService : Service() {
         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
-    /** Renders an hour number (e.g. "9", "23") as a tiny white bitmap for use as a progress end-cap icon. */
-    private fun hourLabelIcon(hour: Int): IconCompat {
-        val label = hour.toString()
-        val sizePx = 20
-        val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+    /** Renders a time in minutes-since-midnight as a tiny "H:MM" or "HH:MM" white bitmap icon. */
+    private fun minuteLabelIcon(totalMinutes: Int): IconCompat {
+        val h = totalMinutes / 60
+        val m = totalMinutes % 60
+        val label = if (m == 0) h.toString() else "%d:%02d".format(h, m)
+        val widthPx = if (label.length <= 2) 20 else 32
+        val heightPx = 20
+        val bmp = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = 0xFFFFFFFF.toInt()
-            textSize = 12f
+            textSize = 11f
             typeface = Typeface.DEFAULT_BOLD
             textAlign = Paint.Align.CENTER
         }
-        val yPos = (sizePx / 2f) - ((paint.descent() + paint.ascent()) / 2f)
-        canvas.drawText(label, sizePx / 2f, yPos, paint)
+        val yPos = (heightPx / 2f) - ((paint.descent() + paint.ascent()) / 2f)
+        canvas.drawText(label, widthPx / 2f, yPos, paint)
         return IconCompat.createWithBitmap(bmp)
     }
 

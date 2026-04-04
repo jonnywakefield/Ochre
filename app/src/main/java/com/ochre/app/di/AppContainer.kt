@@ -8,11 +8,13 @@ import com.ochre.data.repository.EventRepositoryImpl
 import com.ochre.data.repository.FoodRepositoryImpl
 import com.ochre.data.repository.ReminderRepositoryImpl
 import com.ochre.data.repository.WalkRepositoryImpl
+import com.ochre.data.repository.WeightRepositoryImpl
 import com.ochre.domain.repository.AloneRepository
 import com.ochre.domain.repository.EventRepository
 import com.ochre.domain.repository.FoodRepository
 import com.ochre.domain.repository.ReminderRepository
 import com.ochre.domain.repository.WalkRepository
+import com.ochre.domain.repository.WeightRepository
 import com.ochre.domain.usecase.DeleteEventUseCase
 import com.ochre.domain.usecase.GetAllEventsUseCase
 import com.ochre.domain.usecase.GetLastEventPerTypeUseCase
@@ -34,6 +36,9 @@ import com.ochre.domain.usecase.food.SaveMealUseCase
 import com.ochre.domain.usecase.reminder.DeleteReminderUseCase
 import com.ochre.domain.usecase.reminder.GetAllRemindersUseCase
 import com.ochre.domain.usecase.reminder.SaveReminderUseCase
+import com.ochre.domain.usecase.weight.DeleteWeightUseCase
+import com.ochre.domain.usecase.weight.GetWeightHistoryUseCase
+import com.ochre.domain.usecase.weight.LogWeightUseCase
 import com.ochre.domain.usecase.walk.AddPeeToWalkUseCase
 import com.ochre.domain.usecase.walk.DeleteWalkUseCase
 import com.ochre.domain.usecase.walk.AddPooToWalkUseCase
@@ -95,13 +100,19 @@ interface AppContainer {
     val saveReminderUseCase: SaveReminderUseCase
     val getAllRemindersUseCase: GetAllRemindersUseCase
     val deleteReminderUseCase: DeleteReminderUseCase
+
+    // Weight use cases
+    val weightRepository: WeightRepository
+    val logWeightUseCase: LogWeightUseCase
+    val getWeightHistoryUseCase: GetWeightHistoryUseCase
+    val deleteWeightUseCase: DeleteWeightUseCase
 }
 
 class DefaultAppContainer(private val context: Context) : AppContainer {
 
     private val database: AppDatabase by lazy {
         Room.databaseBuilder(context, AppDatabase::class.java, AppDatabase.DATABASE_NAME)
-            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3)
+            .addMigrations(AppDatabase.MIGRATION_1_2, AppDatabase.MIGRATION_2_3, AppDatabase.MIGRATION_3_4)
             .build()
     }
 
@@ -147,4 +158,9 @@ class DefaultAppContainer(private val context: Context) : AppContainer {
     override val saveReminderUseCase by lazy { SaveReminderUseCase(reminderRepository) }
     override val getAllRemindersUseCase by lazy { GetAllRemindersUseCase(reminderRepository) }
     override val deleteReminderUseCase by lazy { DeleteReminderUseCase(reminderRepository) }
+
+    override val weightRepository: WeightRepository by lazy { WeightRepositoryImpl(database.weightDao) }
+    override val logWeightUseCase by lazy { LogWeightUseCase(weightRepository) }
+    override val getWeightHistoryUseCase by lazy { GetWeightHistoryUseCase(weightRepository) }
+    override val deleteWeightUseCase by lazy { DeleteWeightUseCase(weightRepository) }
 }
