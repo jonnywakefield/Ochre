@@ -172,22 +172,20 @@ class StatusService : Service() {
             }
         }
 
-        // Past walks today — span their actual duration in a warm brown
+        // Past walks today — 2-minute mark at start time
         snap.walkHistory.filter { !it.isActive }.forEach { walk ->
-            val endMs   = walk.endMillis ?: return@forEach
-            if (endMs < dayStartMs || walk.startMillis > now) return@forEach
+            if (walk.startMillis < dayStartMs || walk.startMillis > now) return@forEach
             val startMin = ((walk.startMillis - dayStartMs) / 60_000).toInt()
-            val endMin   = ((endMs           - dayStartMs) / 60_000).toInt()
             val s = barPos(startMin)
-            val e = barPos(endMin).coerceAtMost(barSpan)
+            val e = barPos(startMin + 2).coerceAtMost(barSpan)
             if (e > s) regions += Region(s, e, 0xFFA0724A.toInt()) // warm brown
         }
 
-        // Active walk — from start to now, brighter colour
+        // Active walk — 2-minute mark at start time
         snap.activeWalk?.let { walk ->
             val startMin = ((walk.startMillis - dayStartMs) / 60_000).toInt()
             val s = barPos(startMin)
-            val e = nowPos
+            val e = barPos(startMin + 2).coerceAtMost(barSpan)
             if (e > s) regions += Region(s, e, 0xFFD4925A.toInt()) // lighter brown
         }
 
