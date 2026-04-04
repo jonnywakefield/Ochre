@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dog side-profile — alone/away state (reduced opacity) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <path
+        android:fillColor="@android:color/white"
+        android:alpha="0.55"
+        android:pathData="M62,10 C55,10 49,14 46,20 C43,18 39,17 36,18 C30,19 26,24 27,30 C22,32 19,37 20,43 C16,45 14,49 15,54 C16,58 19,61 23,62 L23,78 C23,81 25,83 28,83 C31,83 33,81 33,78 L33,65 L45,65 L45,78 C45,81 47,83 50,83 C53,83 55,81 55,78 L55,60 C60,58 64,53 64,47 L64,40 C68,38 72,34 72,28 C72,18 68,10 62,10Z M62,15 C66,15 67,20 67,28 C67,32 65,35 62,37 L59,38 L59,47 C59,51 56,55 52,56 L50,57 L50,78 L45,78 L45,62 L33,62 L28,62 L28,78 L23,78 L23,63 C19,62 17,59 17,55 C16,51 18,48 21,47 C21,41 24,37 28,36 C27,31 30,26 35,25 C38,24 41,25 44,27 C46,22 52,15 62,15Z" />
+</vector>

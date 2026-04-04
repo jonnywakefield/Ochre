@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Notifications (Android 13+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Exact alarms for scheduled walk/feed alerts (Android 12+) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Foreground service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- Keep timer running when screen is off -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- NFC tag scanning -->
+    <uses-permission android:name="android.permission.NFC" />
+    <!-- Declare NFC as used but not required — app works without it -->
+    <uses-feature android:name="android.hardware.nfc" android:required="false" />
+
+    <application
+        android:name=".app.OchreApp"
+        android:allowBackup="true"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Ochre">
+
+        <activity
+            android:name=".app.MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.Ochre"
+            android:launchMode="singleTop">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+            NFC dispatch activity — transparent, no history, no animation.
+            Receives NDEF tag scans even when the app is not open.
+            The MIME type "application/com.ochre" must be written on each physical tag.
+            Use any NDEF writer app (e.g. NFC Tools) to write the ochre:* payload strings.
+        -->
+        <activity
+            android:name=".nfc.NfcDispatchActivity"
+            android:exported="true"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <!-- Primary filter: custom MIME type written on ochre tags -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/com.ochre" />
+            </intent-filter>
+            <!-- Fallback: catch any unformatted or plain-text NDEF tag -->
+            <intent-filter>
+                <action android:name="android.nfc.action.NDEF_DISCOVERED" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!-- Foreground service for active walk timer -->
+        <service
+            android:name=".service.WalkTimerService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Walk timer showing elapsed walk duration with poo/pee logging" />
+        </service>
+
+        <!-- Foreground service for alone mode timer -->
+        <service
+            android:name=".service.AloneTimerService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Away-from-home timer tracking how long the dog has been alone" />
+        </service>
+
+        <!-- Always-on persistent status notification -->
+        <service
+            android:name=".service.StatusService"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Persistent dog care status showing last walk, last feed, and next meal time" />
+        </service>
+
+        <!-- Broadcast receiver for notification action buttons -->
+        <receiver
+            android:name=".service.TimerActionReceiver"
+            android:exported="false" />
+
+
+    </application>
+
+</manifest>
