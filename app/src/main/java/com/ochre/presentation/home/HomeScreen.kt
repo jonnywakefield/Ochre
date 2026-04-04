@@ -59,25 +59,26 @@ fun HomeScreen(viewModel: HomeViewModel) {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             // Walk status
+            val activeWalk = uiState.activeWalk
+            val lastWalkEnd = uiState.lastWalkEndMillis
             val walkLabel = when {
-                uiState.isWalkActive -> "Walk  ${formatElapsed(now - (uiState.activeWalk!!.startMillis))}"
-                uiState.lastWalkEndMillis != null -> "Last walk  ${formatElapsed(now - uiState.lastWalkEndMillis)} ago"
-                else -> "Walk  —"
+                activeWalk != null  -> "Walk  ${formatElapsed(now - activeWalk.startMillis)}"
+                lastWalkEnd != null -> "Last walk  ${formatElapsed(now - lastWalkEnd)} ago"
+                else                -> "Walk  —"
             }
             DashRow(label = walkLabel, highlight = uiState.isWalkActive)
 
             // Feed status
-            val feedLabel = when {
-                uiState.lastFedMillis != null -> "Last fed  ${formatElapsed(now - uiState.lastFedMillis)} ago"
-                else -> "Last fed  —"
-            }
+            val lastFed = uiState.lastFedMillis
+            val feedLabel = if (lastFed != null) "Last fed  ${formatElapsed(now - lastFed)} ago" else "Last fed  —"
             DashRow(label = feedLabel)
 
             // Next meal
-            if (uiState.nextMeal != null && uiState.nextMealMinutes != null) {
-                val minsUntil = uiState.nextMealMinutes
-                val nextLabel = if (minsUntil < 60) "Next feed  in ${minsUntil}m (${uiState.nextMeal.label})"
-                               else "Next feed  in ${minsUntil / 60}h ${minsUntil % 60}m (${uiState.nextMeal.label})"
+            val nextMeal = uiState.nextMeal
+            val nextMealMinutes = uiState.nextMealMinutes
+            if (nextMeal != null && nextMealMinutes != null) {
+                val nextLabel = if (nextMealMinutes < 60) "Next feed  in ${nextMealMinutes}m (${nextMeal.label})"
+                               else "Next feed  in ${nextMealMinutes / 60}h ${nextMealMinutes % 60}m (${nextMeal.label})"
                 DashRow(label = nextLabel)
             }
 
@@ -90,9 +91,10 @@ fun HomeScreen(viewModel: HomeViewModel) {
             }
 
             // Away status
-            if (uiState.isAloneActive) {
+            val activeAlone = uiState.activeAlone
+            if (activeAlone != null) {
                 DashRow(
-                    label = "Away  ${formatElapsed(now - (uiState.activeAlone!!.startMillis))}",
+                    label = "Away  ${formatElapsed(now - activeAlone.startMillis)}",
                     highlight = true
                 )
             }
