@@ -94,7 +94,7 @@ class StatusService : Service() {
         val title = when {
             snap.activeWalk != null  -> "Walking  ${formatHHMM(now - snap.activeWalk.startMillis)}"
             snap.activeAlone != null -> "Away  ${formatHHMM(now - snap.activeAlone.startMillis)}"
-            else                     -> "ochre"
+            else                     -> "Ochre"
         }
 
         // ── Suggested feed time — next upcoming meal's randomised time ───────
@@ -242,7 +242,7 @@ class StatusService : Service() {
     private fun buildPlaceholder(): Notification =
         NotificationCompat.Builder(this, CHANNEL_STATUS)
             .setSmallIcon(R.drawable.ic_paw)
-            .setContentTitle("ochre")
+            .setContentTitle("Ochre")
             .setContentText("Starting…")
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

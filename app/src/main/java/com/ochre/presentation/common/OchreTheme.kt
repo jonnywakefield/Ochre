@@ -14,7 +14,7 @@ object OchreColors {
     val Surface = Color(0xFF0D0D0D)
     val Accent = Color(0xFFE4A853)
     val TextPrimary = Color(0xFFF0EDE8)
-    val TextSecondary = Color(0xFF6B6B6B)
+    val TextSecondary = Color(0xFF9E9E9E)
     val Destructive = Color(0xFFCF6679)
 }
 
