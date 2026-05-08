@@ -3,7 +3,7 @@ package com.ochre.presentation.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DirectionsWalk
-import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -35,7 +35,7 @@ private val navItems = listOf(
     NavItem(Screen.Home,     "Home",     NavIcon.Res(R.drawable.ic_dog_run)),
     NavItem(Screen.Walk,     "Walk",     NavIcon.Vector(Icons.Default.DirectionsWalk)),
     NavItem(Screen.Calendar, "Calendar", NavIcon.Vector(Icons.Default.CalendarMonth)),
-    NavItem(Screen.Training, "Training", NavIcon.Vector(Icons.Default.FitnessCenter)),
+    NavItem(Screen.Stats,    "Stats",    NavIcon.Vector(Icons.Default.BarChart)),
     NavItem(Screen.Medical,  "Medical",  NavIcon.Vector(Icons.Default.LocalHospital)),
     NavItem(Screen.Settings, "Settings", NavIcon.Vector(Icons.Default.Settings)),
 )

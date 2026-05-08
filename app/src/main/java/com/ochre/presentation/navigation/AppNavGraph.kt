@@ -23,7 +23,8 @@ import com.ochre.presentation.home.HomeViewModel
 import com.ochre.presentation.medical.MedicalScreen
 import com.ochre.presentation.medical.MedicalViewModel
 import com.ochre.presentation.settings.SettingsScreen
-import com.ochre.presentation.training.TrainingScreen
+import com.ochre.presentation.stats.StatsScreen
+import com.ochre.presentation.stats.StatsViewModel
 import com.ochre.presentation.walk.WalkScreen
 import com.ochre.presentation.walk.WalkSettingsScreen
 import com.ochre.presentation.walk.WalkViewModel
@@ -125,8 +126,14 @@ fun AppNavGraph(container: AppContainer) {
                 CalendarScreen(viewModel = viewModel)
             }
 
-            composable(Screen.Training.route) {
-                TrainingScreen()
+            composable(Screen.Stats.route) {
+                val viewModel: StatsViewModel = viewModel(
+                    factory = StatsViewModel.provideFactory(
+                        getAllEventsUseCase = container.getAllEventsUseCase,
+                        getWalkHistoryUseCase = container.getWalkHistoryUseCase
+                    )
+                )
+                StatsScreen(viewModel = viewModel)
             }
 
             composable(Screen.Medical.route) {
