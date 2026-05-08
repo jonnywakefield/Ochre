@@ -213,6 +213,7 @@ private fun AddWeightDialog(
 ) {
     var kgText by remember { mutableStateOf("") }
     var noteText by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -222,7 +223,7 @@ private fun AddWeightDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = kgText,
-                    onValueChange = { kgText = it },
+                    onValueChange = { kgText = it; error = null },
                     label = { Text("Weight (kg)", color = OchreColors.TextSecondary, fontSize = 12.sp) },
                     placeholder = { Text("e.g. 12.4", color = OchreColors.TextSecondary, fontSize = 13.sp) },
                     singleLine = true,
@@ -236,13 +237,18 @@ private fun AddWeightDialog(
                     singleLine = true,
                     colors = weightFieldColors()
                 )
+                if (error != null) {
+                    Text(error!!, color = OchreColors.Destructive, fontSize = 12.sp)
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 val kg = kgText.toFloatOrNull()
-                if (kg != null && kg > 0f) {
-                    onConfirm(kg, System.currentTimeMillis(), noteText.trim())
+                when {
+                    kg == null -> error = "Enter a valid number"
+                    kg < 0.5f || kg > 120f -> error = "Weight must be 0.5–120 kg"
+                    else -> onConfirm(kg, System.currentTimeMillis(), noteText.trim())
                 }
             }) {
                 Text("Save", color = OchreColors.Accent)

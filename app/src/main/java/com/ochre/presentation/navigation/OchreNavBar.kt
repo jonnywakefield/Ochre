@@ -5,7 +5,6 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.DirectionsWalk
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalHospital
-import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -33,9 +32,8 @@ private sealed class NavIcon {
 private data class NavItem(val screen: Screen, val label: String, val icon: NavIcon)
 
 private val navItems = listOf(
-    NavItem(Screen.Home,     "Home",     NavIcon.Res(R.drawable.ic_launcher_foreground)),
+    NavItem(Screen.Home,     "Home",     NavIcon.Res(R.drawable.ic_dog_run)),
     NavItem(Screen.Walk,     "Walk",     NavIcon.Vector(Icons.Default.DirectionsWalk)),
-    NavItem(Screen.Food,     "Food",     NavIcon.Vector(Icons.Default.Restaurant)),
     NavItem(Screen.Calendar, "Calendar", NavIcon.Vector(Icons.Default.CalendarMonth)),
     NavItem(Screen.Training, "Training", NavIcon.Vector(Icons.Default.FitnessCenter)),
     NavItem(Screen.Medical,  "Medical",  NavIcon.Vector(Icons.Default.LocalHospital)),

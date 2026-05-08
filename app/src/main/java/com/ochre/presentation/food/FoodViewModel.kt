@@ -67,7 +67,14 @@ class FoodViewModel(
         val recent = feedLog.filter { it.timestampMillis >= cutoff }
         if (recent.isEmpty()) return 0f
         val totalGrams = recent.sumOf { (it.value ?: 0f).toDouble() }.toFloat()
-        return totalGrams / 7f
+        val daysWithData = recent
+            .map { event ->
+                val cal = java.util.Calendar.getInstance().apply { timeInMillis = event.timestampMillis }
+                cal.get(java.util.Calendar.YEAR) * 1000 + cal.get(java.util.Calendar.DAY_OF_YEAR)
+            }
+            .toSet()
+            .size
+        return totalGrams / daysWithData.coerceAtLeast(1).toFloat()
     }
 
     companion object {

@@ -199,14 +199,10 @@ private fun MealRow(meal: MealScheduleEntry, fedToday: Boolean, onFed: () -> Uni
                     Text("✓", color = OchreColors.Accent, fontSize = 13.sp)
                 }
             }
-            val windowStart = "%02d:%02d".format(
-                (meal.targetHour * 60 + meal.targetMinute - meal.windowMinutes / 2) / 60 % 24,
-                (meal.targetMinute - meal.windowMinutes / 2 + 60) % 60
-            )
-            val windowEnd = "%02d:%02d".format(
-                (meal.targetHour * 60 + meal.targetMinute + meal.windowMinutes / 2) / 60 % 24,
-                (meal.targetMinute + meal.windowMinutes / 2) % 60
-            )
+            val windowStartMin = (meal.targetHour * 60 + meal.targetMinute - meal.windowMinutes / 2 + 1440) % 1440
+            val windowEndMin   = (meal.targetHour * 60 + meal.targetMinute + meal.windowMinutes / 2) % 1440
+            val windowStart = "%02d:%02d".format(windowStartMin / 60, windowStartMin % 60)
+            val windowEnd   = "%02d:%02d".format(windowEndMin / 60, windowEndMin % 60)
             Text(
                 "$windowStart – $windowEnd  ${meal.defaultGrams}g",
                 color = OchreColors.TextSecondary,
@@ -310,7 +306,10 @@ private fun LogFeedDialog(
             )
         },
         confirmButton = {
-            TextButton(onClick = { gramsText.toIntOrNull()?.let { onConfirm(it) } }) {
+            TextButton(onClick = {
+                val g = gramsText.toIntOrNull()
+                if (g != null && g in 1..2000) onConfirm(g)
+            }) {
                 Text("Log", color = OchreColors.Accent)
             }
         },
@@ -324,6 +323,7 @@ private fun AddMealDialog(onConfirm: (MealScheduleEntry) -> Unit, onDismiss: () 
     var time by remember { mutableStateOf("08:00") }
     var window by remember { mutableStateOf("60") }
     var grams by remember { mutableStateOf("200") }
+    var error by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -331,34 +331,47 @@ private fun AddMealDialog(onConfirm: (MealScheduleEntry) -> Unit, onDismiss: () 
         title = { Text("Add meal", color = OchreColors.TextPrimary, fontSize = 16.sp) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                OutlinedTextField(value = label, onValueChange = { label = it },
+                OutlinedTextField(value = label, onValueChange = { label = it; error = null },
                     label = { Text("Label", color = OchreColors.TextSecondary, fontSize = 12.sp) },
                     placeholder = { Text("e.g. Morning", color = OchreColors.TextSecondary, fontSize = 13.sp) },
                     singleLine = true, colors = feedFieldColors())
-                OutlinedTextField(value = time, onValueChange = { time = it },
+                OutlinedTextField(value = time, onValueChange = { time = it; error = null },
                     label = { Text("Time (HH:MM)", color = OchreColors.TextSecondary, fontSize = 12.sp) },
                     singleLine = true, colors = feedFieldColors())
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = window, onValueChange = { window = it },
+                    OutlinedTextField(value = window, onValueChange = { window = it; error = null },
                         label = { Text("Window (min)", color = OchreColors.TextSecondary, fontSize = 12.sp) },
                         singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = feedFieldColors(), modifier = Modifier.weight(1f))
-                    OutlinedTextField(value = grams, onValueChange = { grams = it },
+                    OutlinedTextField(value = grams, onValueChange = { grams = it; error = null },
                         label = { Text("Default (g)", color = OchreColors.TextSecondary, fontSize = 12.sp) },
                         singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = feedFieldColors(), modifier = Modifier.weight(1f))
+                }
+                if (error != null) {
+                    Text(error!!, color = OchreColors.Destructive, fontSize = 12.sp)
                 }
             }
         },
         confirmButton = {
             TextButton(onClick = {
-                val parts = time.split(":").mapNotNull { it.toIntOrNull() }
-                if (label.isNotBlank() && parts.size == 2) {
-                    onConfirm(MealScheduleEntry(
+                val parts = time.trim().split(":").mapNotNull { it.toIntOrNull() }
+                val h = parts.getOrNull(0)
+                val m = parts.getOrNull(1)
+                val w = window.toIntOrNull()
+                val g = grams.toIntOrNull()
+                when {
+                    label.isBlank() -> error = "Label is required"
+                    parts.size != 2 || h == null || m == null -> error = "Time must be HH:MM"
+                    h !in 0..23 -> error = "Hour must be 0–23"
+                    m !in 0..59 -> error = "Minute must be 0–59"
+                    w == null || w !in 1..180 -> error = "Window must be 1–180 min"
+                    g == null || g !in 1..2000 -> error = "Grams must be 1–2000"
+                    else -> onConfirm(MealScheduleEntry(
                         label = label,
-                        targetHour = parts[0], targetMinute = parts[1],
-                        windowMinutes = window.toIntOrNull() ?: 60,
-                        defaultGrams = grams.toIntOrNull() ?: 200
+                        targetHour = h, targetMinute = m,
+                        windowMinutes = w,
+                        defaultGrams = g
                     ))
                 }
             }) { Text("Add", color = OchreColors.Accent) }

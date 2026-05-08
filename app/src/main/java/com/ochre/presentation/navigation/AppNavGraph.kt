@@ -18,8 +18,6 @@ import com.ochre.domain.usecase.alone.DeleteAloneUseCase
 import com.ochre.domain.usecase.walk.DeleteWalkUseCase
 import com.ochre.presentation.calendar.CalendarScreen
 import com.ochre.presentation.calendar.CalendarViewModel
-import com.ochre.presentation.food.FoodScreen
-import com.ochre.presentation.food.FoodViewModel
 import com.ochre.presentation.home.HomeScreen
 import com.ochre.presentation.home.HomeViewModel
 import com.ochre.presentation.medical.MedicalScreen
@@ -54,9 +52,14 @@ fun AppNavGraph(container: AppContainer) {
                         startAloneUseCase = container.startAloneUseCase,
                         endAloneUseCase = container.endAloneUseCase,
                         getActiveAloneSessionUseCase = container.getActiveAloneSessionUseCase,
+                        logFeedUseCase = container.logFeedUseCase,
                         getFeedLogUseCase = container.getFeedLogUseCase,
                         getMealScheduleUseCase = container.getMealScheduleUseCase,
-                        getCurrentStockUseCase = container.getCurrentStockUseCase
+                        getCurrentStockUseCase = container.getCurrentStockUseCase,
+                        saveMealUseCase = container.saveMealUseCase,
+                        deleteMealUseCase = container.deleteMealUseCase,
+                        addStockUseCase = container.addStockUseCase,
+                        deleteEventUseCase = container.deleteEventUseCase
                     )
                 )
 
@@ -103,22 +106,6 @@ fun AppNavGraph(container: AppContainer) {
                 }
             }
 
-            composable(Screen.Food.route) {
-                val viewModel: FoodViewModel = viewModel(
-                    factory = FoodViewModel.provideFactory(
-                        logFeedUseCase = container.logFeedUseCase,
-                        getMealScheduleUseCase = container.getMealScheduleUseCase,
-                        saveMealUseCase = container.saveMealUseCase,
-                        deleteMealUseCase = container.deleteMealUseCase,
-                        getFeedLogUseCase = container.getFeedLogUseCase,
-                        getCurrentStockUseCase = container.getCurrentStockUseCase,
-                        addStockUseCase = container.addStockUseCase,
-                        deleteEventUseCase = container.deleteEventUseCase
-                    )
-                )
-                FoodScreen(viewModel = viewModel)
-            }
-
             composable(Screen.Calendar.route) {
                 val viewModel: CalendarViewModel = viewModel(
                     factory = CalendarViewModel.provideFactory(
@@ -154,7 +141,7 @@ fun AppNavGraph(container: AppContainer) {
             }
 
             composable(Screen.Settings.route) {
-                SettingsScreen()
+                SettingsScreen(getMealScheduleUseCase = container.getMealScheduleUseCase)
             }
         }
     }

@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Exact alarms for scheduled walk/feed alerts (Android 12+) -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <!-- Reschedule alarms after device reboot -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Foreground service -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -97,6 +100,26 @@
             android:name=".service.TimerActionReceiver"
             android:exported="false" />
 
+        <!-- Heads-up alert receiver: food window, walk overdue, alone limit -->
+        <receiver
+            android:name=".service.AlertReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.ochre.alert.FOOD" />
+                <action android:name="com.ochre.alert.WALK_GAP" />
+                <action android:name="com.ochre.alert.WALK_SCHED" />
+                <action android:name="com.ochre.alert.ALONE" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Reschedule alarms after device reboot -->
+        <receiver
+            android:name=".service.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

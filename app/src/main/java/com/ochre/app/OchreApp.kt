@@ -3,7 +3,11 @@ package com.ochre.app
 import android.app.Application
 import com.ochre.app.di.AppContainer
 import com.ochre.app.di.DefaultAppContainer
+import com.ochre.service.AlarmHelper
 import com.ochre.service.OchreNotificationManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class OchreApp : Application() {
 
@@ -15,5 +19,9 @@ class OchreApp : Application() {
         OchreNotificationManager.createChannels(this)
         // StatusService is started from MainActivity.onStart() to ensure
         // there is a foreground activity context (required on Android 12+)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            AlarmHelper.scheduleAll(this@OchreApp)
+        }
     }
 }
